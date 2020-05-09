@@ -39,45 +39,43 @@ void todo_list(void) {
 }
 
 char buf[BUFLEN];
-char *strings1[MAXSTRINGS], *strings2[MAXSTRINGS]; 
-char *stringCombined[MAXSTRINGS]; //created this string to hold string1 and string2 together in order to use printboth() from utils.c
+char *strings1[MAXSTRINGS], *strings2[MAXSTRINGS];
+char *stringsCombined[MAXSTRINGS];
 int showversion = 0, showbrief = 0, ignorecase = 0, report_identical = 0, showsidebyside = 0;
 int showleftcolumn = 0, showunified = 0, showcontext = 0, suppresscommon = 0, diffnormal = 0;
-int firstOrSecond = 0;
+
 int count1 = 0, count2 = 0, different = 0;
 
 
 void loadfiles(const char* filename1, const char* filename2) {
-  memset(buf, 0, sizeof(buf)); //setting all of the buffer to 0
-  memset(strings1, 0, sizeof(strings1)); //setting all of string1 to 0
-  memset(strings2, 0, sizeof(strings2)); //setting all of string2 to 0
-  memset(stringCombined, 0, sizeof(stringCombined)); //string to print string1 and 2 on the same line
-  FILE *fin1 = openfile(filename1, "r"); //open file1
-  FILE *fin2 = openfile(filename2, "r"); //open file2
+  memset(buf, 0, sizeof(buf));
+  memset(strings1, 0, sizeof(strings1));
+  memset(strings2, 0, sizeof(strings2));
   
-  while (!feof(fin1) && fgets(buf, BUFLEN, fin1) != NULL) { 
-      strings1[count1++] = strdup(buf); 
-      }  
-    fclose(fin1);
+  FILE *fin1 = openfile(filename1, "r");
+  FILE *fin2 = openfile(filename2, "r");
   
-  while (!feof(fin2) && fgets(buf, BUFLEN, fin2) != NULL) { 
-      strings2[count2++] = strdup(buf); 
-    }  
-    fclose(fin2);
+  while (!feof(fin1) && fgets(buf, BUFLEN, fin1) != NULL) { strings1[count1++] = strdup(buf); }  fclose(fin1);
+  while (!feof(fin2) && fgets(buf, BUFLEN, fin2) != NULL) { strings2[count2++] = strdup(buf); }  fclose(fin2);
   
-  if (count1 != count2) { different = 1;  return; } //checks if num lines we got matches
-  if (count1 > count2) { firstOrSecond=1; } //checks which file had more lines  
+  if (count1 != count2) { different = 1;  return; }
   for (int i = 0, j = 0; i < count1 && j < count2;  ++i, ++j) {
-    if (strcmp(strings1[i], strings2[j]) != 0) { different = 1;  return; } //tells us if the files are different
+    if (strcmp(strings1[i], strings2[j]) != 0) { different = 1;  return; }
   }
 }
 
-void getCombined(void){
-    for(int i=0; i<count1; ++i){
-      strcpy(stringCombined[i], strings1[i]);
-      strcat(stringCombined[i], strings2[i]);
-      printf("%s\n", stringCombined[i]);
-    } 
+void getCombo(void){
+  char *newBuffer, *finalBuffer;
+  int newSize = 0;
+  for(int i = 0, j = 0; i < count1 && j < count2; ++i, ++j) {
+    newSize = strlen(strings1[i]) + strlen(strings2[j]) + 1;
+    newBuffer = (char*)malloc(sizeof(newSize));
+    finalBuffer = (char*)malloc(sizeof(newSize));
+    strcpy(newBuffer, strings1[i]);
+    printf("%s", newBuffer);
+    memset(newBuffer, 0, strlen(strings1[i]));
+    newSize = 0;
+  }
 }
 
 void print_option(const char* name, int value) { printf("%17s: %s\n", name, yesorno(value)); }
@@ -144,7 +142,6 @@ void init_options_files(int argc, const char* argv[]) {
   }
   
   if (showversion) { version();  exit(0); }
-  
   if (((showsidebyside || showleftcolumn) && (diffnormal || showcontext || showunified)) ||
       (showcontext && showunified) || (diffnormal && (showcontext || showunified))) {
 
@@ -154,23 +151,22 @@ void init_options_files(int argc, const char* argv[]) {
   showoptions(files[0], files[1]);
   loadfiles(files[0], files[1]);
 
-  if (report_identical && !different) { printf("The files are identical.\n\n"); exit(0); } 
+  if (report_identical && !different) { printf("The files are identical.\n\n");    }
 
-  if (showbrief && different) { printf("The files are different.\n\n"); exit(0); }  
+  if (showbrief && different) { printf("The files are different.\n\n");    }
 }
 
 
 int main(int argc, const char * argv[]) {
+  //getCombo();
   init_options_files(--argc, ++argv);
 
-  para_printfile(strings1, count1, printleft); //prints first file
-  para_printfile(strings2, count2, printright);//prints second file
-  para_printfile(strings1, count1, printboth);
-
+//  para_printfile(strings1, count1, printleft);
+//  para_printfile(strings2, count2, printright);
+  
   para* p = para_first(strings1, count1);
   para* q = para_first(strings2, count2);
   int foundmatch = 0;
-
   para* qlast = q;
   while (p != NULL) {
     qlast = q;
