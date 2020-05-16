@@ -18,7 +18,8 @@ FILE* openfile(const char* filename, const char* openflags);
 void printleft(const char* left);
 void printright(const char* right);
 void printboth(const char* left_right);
-
+void printleftUnify(const char* left); 
+void printleft2(const char* left);
 void printline(void);
 
 #endif /* util_h */

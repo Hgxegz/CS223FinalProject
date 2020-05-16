@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define ARGC_ERROR 1
 #define TOOMANYFILES_ERROR 2
@@ -64,21 +65,139 @@ void loadfiles(const char* filename1, const char* filename2) {
   }
 }
 
-void getCombo(void){
-  char *newBuffer, *finalBuffer;
-  int newSize = 0;
-  for(int i = 0, j = 0; i < count1 && j < count2; ++i, ++j) {
-    newSize = strlen(strings1[i]) + strlen(strings2[j]) + 1;
-    newBuffer = (char*)malloc(sizeof(newSize));
-    finalBuffer = (char*)malloc(sizeof(newSize));
-    strcpy(newBuffer, strings1[i]);
-    printf("%s", newBuffer);
-    memset(newBuffer, 0, strlen(strings1[i]));
-    newSize = 0;
+void print_option(const char* name, int value) { printf("%17s: %s\n", name, yesorno(value)); }
+
+void printLeftColumn(para* p, para* q){
+  int foundmatch = 0;
+  para* qlast = q;
+  while (p != NULL) {
+    qlast = q;
+    foundmatch = 0;
+    while (q != NULL && (foundmatch = para_equal(p, q)) == 0) {
+      q = para_next(q);
+    }
+    q = qlast;
+    if (foundmatch) {
+      while ((foundmatch = para_equal(p, q)) == 0) {
+        para_print(q, printright);
+        q = para_next(q);
+        qlast = q;
+      }
+      para_print(q, printleft2);
+      p = para_next(p);
+      q = para_next(q);
+    } else {
+      para_print(p, printleft);
+      p = para_next(p);
+    }
+  }
+  while (q != NULL) {
+    para_print(q, printright);
+    q = para_next(q);
+  }
+
+}
+
+void printSuppressed(para* p, para* q){
+    int foundmatch = 0;
+    para* qlast = q;
+    while (p != NULL) {
+    qlast = q;
+    foundmatch = 0;
+    while (q != NULL && (foundmatch = para_equal(p, q)) == 0) {
+      q = para_next(q);
+    }
+    q = qlast;
+    if (foundmatch) {
+      while ((foundmatch = para_equal(p, q)) == 0) {
+        para_print(q, printright);
+        q = para_next(q);
+        qlast = q;
+      }
+      p = para_next(p);
+      q = para_next(q);
+    } else {
+      para_print(p, printleft);
+      p = para_next(p);
+    }
+  }
+  while (q != NULL) {
+    para_print(q, printright);
+    q = para_next(q);
   }
 }
 
-void print_option(const char* name, int value) { printf("%17s: %s\n", name, yesorno(value)); }
+void unify(para* p, para* q) {
+  int foundmatch = 0;
+  para* qlast = q;
+  while (p != NULL) {
+    qlast = q;
+    foundmatch = 0;
+    while (q != NULL && (foundmatch = para_equal(p, q)) == 0) {
+      q = para_next(q);
+    }
+    q = qlast;
+    if (foundmatch) {
+      while ((foundmatch = para_equal(p, q)) == 0) {
+        printf("+");
+        para_print(q, printleftUnify);
+        q = para_next(q);
+        qlast = q;
+      }
+      para_print(q, printleftUnify);
+      p = para_next(p);
+      q = para_next(q);
+    } else {
+      printf("-");
+      para_print(p, printleftUnify);
+      p = para_next(p);
+    }
+  }
+  while (q != NULL) {
+    printf("+");
+    para_print(q, printleftUnify);
+    q = para_next(q);
+  }
+}
+
+void context(para* p, para* q) { //context function
+  printf("*******************************\n");
+  while(p != NULL){
+    para_print(p, printleftUnify);
+    p = para_next(p);
+  }
+  printf("********************************\n");
+  while(q != NULL){
+    para_print(q, printleftUnify);
+    q = para_next(q);
+  }
+}
+ /* 
+  para* qlast = q;
+  while(p != NULL){
+    if((foundmatch = para_equal(p,q) == 0)){
+      printf("INNER");
+      para_print(p, printleftUnify);
+      p = para_next(p);
+    } else {
+      printf("OUTER");
+      para_print(p,printleftUnify);
+      p = para_next(p);
+    }
+  }
+  printf("----___----\n");
+  while(q != NULL){
+      if((foundmatch = para_equal(p,q) == 0)){
+      printf("INNER");
+      para_print(q, printleftUnify);
+      q = para_next(q);
+    } else {
+      printf("OUTER");
+      para_print(q,printleftUnify);
+      q = para_next(q);
+    }
+  } */
+
 
 void diff_output_conflict_error(void) {
   fprintf(stderr, "diff: conflicting output style options\n");
@@ -140,6 +259,7 @@ void init_options_files(int argc, const char* argv[]) {
   if (!showcontext && !showunified && !showsidebyside && !showleftcolumn) {
     diffnormal = 1;
   }
+
   
   if (showversion) { version();  exit(0); }
   if (((showsidebyside || showleftcolumn) && (diffnormal || showcontext || showunified)) ||
@@ -151,14 +271,21 @@ void init_options_files(int argc, const char* argv[]) {
   showoptions(files[0], files[1]);
   loadfiles(files[0], files[1]);
 
-  if (report_identical && !different) { printf("The files are identical.\n\n");    }
+  if (report_identical && !different) { 
+    printf("The files are identical.\n\n");    
+  } else if(report_identical && different){
+    exit(0);
+  }
 
-  if (showbrief && different) { printf("The files are different.\n\n");    }
+  if (showbrief && different) {
+     printf("The files are different.\n\n");    
+  } else if(showbrief && !different){
+    exit(0);
+  }
 }
 
 
 int main(int argc, const char * argv[]) {
-  //getCombo();
   init_options_files(--argc, ++argv);
 
 //  para_printfile(strings1, count1, printleft);
@@ -168,13 +295,35 @@ int main(int argc, const char * argv[]) {
   para* q = para_first(strings2, count2);
   int foundmatch = 0;
   para* qlast = q;
-  while (p != NULL) {
+  if(showleftcolumn && showsidebyside){ //show left column function
+    printLeftColumn(p, q);
+    exit(0);
+  } 
+
+  if(suppresscommon && showsidebyside){  //suppress common lines function
+    printSuppressed(p, q);
+    exit(0);
+  }
+
+  if(showunified){ //unified function
+    printf("Unify function called.\n");
+    unify(p, q);
+    exit(0);
+  }
+
+  if(showcontext){
+    context(p , q);
+    exit(0);
+  }
+
+  while (p != NULL) { 
     qlast = q;
     foundmatch = 0;
     while (q != NULL && (foundmatch = para_equal(p, q)) == 0) {
       q = para_next(q);
     }
     q = qlast;
+
 
     if (foundmatch) {
       while ((foundmatch = para_equal(p, q)) == 0) {
